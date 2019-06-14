@@ -12,7 +12,16 @@ class Model:
         self.embedding_dim = d
         self.lam = lam
         self.learning_rate = lr
+        self.build_valiable()
+        self.build_model()
+        self.build_train()
+        self.build_output_embedding()
+
+    def build_valiable(self):
         bound = 6 / math.sqrt(self.embedding_dim)
+        self.s = tf.placeholder(tf.int32, shape=[None])
+        self.t = tf.placeholder(tf.int32, shape=[None])
+        self.r = tf.placeholder(tf.int32, shape=[None])
         self.emb_s = tf.Variable(tf.random_uniform([num_of_nodes, d], minval=-bound, maxval=bound), dtype=tf.float32)
         self.emb_t = tf.Variable(tf.random_uniform([num_of_nodes, d], minval=-bound, maxval=bound), dtype=tf.float32)
         self.emb_r = tf.Variable(tf.ranodm_uniform([2, d], minval=-bound, maxval=bound), dtype=tf.float32)
@@ -27,4 +36,3 @@ class Model:
         self.train = self.build_train()
 
     def build_loss_reg(self):
-        self.
