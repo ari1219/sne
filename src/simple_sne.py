@@ -2,6 +2,8 @@
 
 import tensorflow as tf
 import random
+import math
+import numpy as np
 
 class SimpleSNE:
 
@@ -13,8 +15,9 @@ class SimpleSNE:
         self.lr = lr
         self.lam = lam
         self.batch_size = 1000
-        _bound = 6 / math.sqrt(self.embedding_dim)
-        self.emb = tf.Variable(tf.random_uniform([n, d], minval=-_bound, maxval=_bound), dtype=tf.float32)
+        _bound = 6 / math.sqrt(self.dim)
+        self.emb = tf.Variable(tf.random_uniform([self.n, self.d], minval=-_bound, maxval=_bound), dtype=tf.float32)
+        print(self.emb.shape)
         self.s = tf.placeholder(tf.int32, shape=[None])
         self.t = tf.placeholder(tf.int32, shape=[None])
         self.r = tf.placeholder(tf.int32, shape=[None])
@@ -24,21 +27,21 @@ class SimpleSNE:
         self.t_emb = tf.nn.embedding_lookup(self.emb, self.s)
         self.neg_s_emb = tf.nn.embedding_lookup(self.emb, self.neg_s)
         self.neg_t_emb = tf.nn.embedding_lookup(self.emb, self.neg_t)
-        self.sign = tf.cast(self.r, tf.float32)
-        self.f_true = tf.norm(self.t_emb - self.r*self.s_emb, axis=1)
-        self.f_r_neg = tf.norm(self.t_emb + self.r*self.s_emb, axis=1)
-        self.f_t_neg = tf.norm(self.neg_t_emb - self.r*self.s_emb, axis=1)
-        self.f_s_neg = tf.norm(self.t_emb - self.r*self.neg_s_emb, axis=1)
+        self.sign = tf.reshape(tf.cast(self.r, tf.float32), shape=[-1, 1])
+        self.f_true = tf.norm(self.t_emb - self.s_emb*self.sign, axis=1)
+        self.f_r_neg = tf.norm(self.t_emb + self.s_emb*self.sign, axis=1)
+        self.f_t_neg = tf.norm(self.neg_t_emb - self.s_emb*self.sign, axis=1)
+        self.f_s_neg = tf.norm(self.t_emb - self.neg_s_emb*self.sign, axis=1)
         self.loss_reg = tf.norm(self.emb)
         self.loss = tf.reduce_mean(tf.nn.relu(self.f_true+self.gamma-self.f_r_neg-self.f_t_neg-self.f_s_neg))+self.loss_reg
         self.train = tf.train.GradientDescentOptimizer(self.lr).minimize(self.loss)
 
     def variables_initialize(self, sess):
-        sess.run(tf.global_valiables_initializer())
+        sess.run(tf.global_variables_initializer())
 
     def train_one_epoch(self, sess, ret_loss=True):
         loss = 0
-        for s, t, r in sample_iterater():
+        for s, t, r in self.sample_iterater():
             neg_s = np.random.randint(0, self.n, len(s))
             neg_t = np.random.randint(0, self.n, len(t))
             _, l = sess.run([self.train, self.loss], feed_dict={self.s:s, self.t:t, self.r:r, self.neg_s:neg_s, self.neg_t:neg_t})
@@ -49,7 +52,10 @@ class SimpleSNE:
     def sample_iterater(self):
         random.shuffle(self.edges)
         for i in range(0, len(self.edges), self.batch_size):
-            s = [edge[0] for edge in edges[i:i+self.batch_size]]
-            t = [edge[1] for edge in edges[i:i+self.batch_size]]
-            r = [edge[2] for edge in edges[i:i+self.batch_size]]
+            s = [edge[0] for edge in self.edges[i:i+self.batch_size]]
+            t = [edge[1] for edge in self.edges[i:i+self.batch_size]]
+            r = [edge[2] for edge in self.edges[i:i+self.batch_size]]
             yield s, t, r
+
+    def get_embedding(self, sess):
+        return sess.run(self.emb)
