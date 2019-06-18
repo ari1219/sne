@@ -3,6 +3,9 @@
 import networkx as nx
 import random
 import matplotlib.pyplot as plt
+from simple_sne import SimpleSNE
+import pandas as pd
+import tensorflow as tf
 
 G = nx.Graph()
 
@@ -27,11 +30,40 @@ for i in range(k-1):
                     G.add_edge(edge[0], edge[1], sign=-1, weight=0.1)
                     break
 node_color = ["c"]*n + ["r"]*n + ["b"]*n + ["y"]*n
-print([edge[0] for edge in G.edges])
 edge_color = ["r" if G.edges[edge[0], edge[1]]["sign"]==1 else "b" for edge in G.edges]
 node_size = 100
-nx.draw_networkx(G, node_size=node_size, node_color=node_color, width=0.5, edge_color=edge_color)
-plt.show()
 
-with open("data/sample.csv", "w") as f:
-    f.write("")
+with open("data/sample.txt", "w") as f:
+    for edge in G.edges:
+        sign = G.edges[edge[0], edge[1]]["sign"]
+        f.write(str(edge[0])+","+str(edge[1])+","+str(sign)+"\n")
+
+# params
+data = "data/sample.txt"
+directed = False
+
+# prepare data
+with open(data, "r") as f:
+    line = f.readline()
+    edges = []
+    while line:
+        line = line.split("\n")[0]
+        line = line.split(",")
+        edges.append(line)
+        line = f.readline()
+n = G.number_of_nodes()
+if not directed:
+    edges += [[edge[1], edge[0], edge[2]] for edge in edges]
+
+sne = SimpleSNE(n, edges, d=2)
+with tf.Session() as sess:
+    sne.variables_initialize(sess)
+    for i in range(1000):
+        loss = sne.train_one_epoch(sess, ret_loss=True)
+        if i % 100 == 0 and i > 1:
+            x = sne.get_embedding(sess)
+            pos = dict()
+            for node in G.nodes:
+                pos[node] = x[node]
+            nx.draw_networkx(G, pos=pos, node_size=node_size, node_color=node_color, width=0.5, edge_color=edge_color)
+            plt.show()
