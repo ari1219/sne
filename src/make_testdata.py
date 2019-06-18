@@ -32,3 +32,6 @@ edge_color = ["r" if G.edges[edge[0], edge[1]]["sign"]==1 else "b" for edge in G
 node_size = 100
 nx.draw_networkx(G, node_size=node_size, node_color=node_color, width=0.5, edge_color=edge_color)
 plt.show()
+
+with open("data/sample.csv", "w") as f:
+    f.write("")
