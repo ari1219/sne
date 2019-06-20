@@ -7,7 +7,7 @@ import numpy as np
 
 class SimpleSNE:
 
-    def __init__(self, n, edges, gamma=1, d=60, lr=0.1, lam=0.0001, batch_size=1000):
+    def __init__(self, n, edges, gamma=10, d=60, lr=0.1, lam=0.0001, batch_size=1000):
         self.n = n
         self.edges = edges
         self.gamma = gamma
@@ -16,14 +16,14 @@ class SimpleSNE:
         self.lam = lam
         self.batch_size = 1000
         _bound = 6 / math.sqrt(self.dim)
-        self.emb = tf.Variable(tf.random_uniform([self.n, self.dim], minval=-_bound, maxval=_bound), dtype=tf.float32)
+        self.emb = tf.nn.l2_normalize(tf.Variable(tf.random_uniform([self.n, self.dim], minval=-_bound, maxval=_bound), dtype=tf.float32))
         self.s = tf.placeholder(tf.int32, shape=[None])
         self.t = tf.placeholder(tf.int32, shape=[None])
         self.r = tf.placeholder(tf.int32, shape=[None])
         self.neg_s = tf.placeholder(tf.int32, shape=[None])
         self.neg_t = tf.placeholder(tf.int32, shape=[None])
         self.s_emb = tf.nn.embedding_lookup(self.emb, self.s)
-        self.t_emb = tf.nn.embedding_lookup(self.emb, self.s)
+        self.t_emb = tf.nn.embedding_lookup(self.emb, self.t)
         self.neg_s_emb = tf.nn.embedding_lookup(self.emb, self.neg_s)
         self.neg_t_emb = tf.nn.embedding_lookup(self.emb, self.neg_t)
         self.sign = tf.reshape(tf.cast(self.r, tf.float32), shape=[-1, 1])
@@ -32,7 +32,7 @@ class SimpleSNE:
         self.f_t_neg = tf.reduce_sum(tf.square(self.neg_t_emb - self.s_emb*self.sign), axis=1)
         self.f_s_neg = tf.reduce_sum(tf.square(self.t_emb - self.neg_s_emb*self.sign), axis=1)
         self.loss_reg = tf.nn.l2_loss(self.emb)
-        self.loss = tf.reduce_mean(tf.nn.relu(self.f_true+self.gamma-self.f_r_neg-self.f_t_neg-self.f_s_neg))+self.lam*self.loss_reg
+        self.loss = tf.reduce_mean(tf.nn.relu(3*self.f_true+self.gamma-self.f_r_neg-self.f_t_neg-self.f_s_neg))+self.lam*self.loss_reg
         self.train = tf.train.GradientDescentOptimizer(self.lr).minimize(self.loss)
 
     def variables_initialize(self, sess):

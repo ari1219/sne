@@ -6,13 +6,14 @@ import matplotlib.pyplot as plt
 from simple_sne import SimpleSNE
 import pandas as pd
 import tensorflow as tf
+from sklearn.manifold import TSNE
 
 G = nx.Graph()
 
 n = 32
 k = 4
-pos_edge = 144
-neg_edge = 96
+pos_edge = 72
+neg_edge = 48
 for i in range(k):
     G.add_nodes_from(list(range(n*i, n*(i+1))))
     for _ in range(pos_edge):
@@ -55,15 +56,17 @@ n = G.number_of_nodes()
 if not directed:
     edges += [[edge[1], edge[0], edge[2]] for edge in edges]
 
-sne = SimpleSNE(n, edges, d=2)
+sne = SimpleSNE(n, edges, d=20)
 with tf.Session() as sess:
     sne.variables_initialize(sess)
-    for i in range(1000):
+    for i in range(2000):
         loss = sne.train_one_epoch(sess, ret_loss=True)
         if i % 100 == 0 and i > 1:
             x = sne.get_embedding(sess)
+            x = TSNE(n_components=2).fit_transform(x)
             pos = dict()
             for node in G.nodes:
                 pos[node] = x[node]
+            plt.figure()
             nx.draw_networkx(G, pos=pos, node_size=node_size, node_color=node_color, width=0.5, edge_color=edge_color)
-            plt.show()
+            plt.savefig("figure/figure_epoch"+str(i)+".png")
