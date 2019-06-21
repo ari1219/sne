@@ -1,6 +1,7 @@
 #-*- coding:utf-8 -*-
 
 from simple_sne import SimpleSNE
+from relational_skipgram import Model
 import pandas as pd
 import networkx as nx
 import tensorflow as tf
@@ -24,7 +25,7 @@ n = G.number_of_nodes()
 if not directed:
     edges += [[edge[1], edge[0], edge[2]] for edge in edges]
 
-sne = SimpleSNE(n, edges, d=2)
+sne = Model(n, edges, d=2, directed=False)
 with tf.Session() as sess:
     sne.variables_initialize(sess)
     for _ in range(1000):

@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from simple_sne import SimpleSNE
 import pandas as pd
 import tensorflow as tf
-from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+from relational_skipgram import Model
 
 G = nx.Graph()
 
@@ -41,7 +42,7 @@ with open("data/sample.txt", "w") as f:
 
 # params
 data = "data/sample.txt"
-directed = False
+directed = True
 
 # prepare data
 with open(data, "r") as f:
@@ -56,17 +57,20 @@ n = G.number_of_nodes()
 if not directed:
     edges += [[edge[1], edge[0], edge[2]] for edge in edges]
 
-sne = SimpleSNE(n, edges, d=20)
+sne = Model(n, edges, d=20, directed=directed)
 with tf.Session() as sess:
     sne.variables_initialize(sess)
-    for i in range(2000):
+    for i in range(30):
         loss = sne.train_one_epoch(sess, ret_loss=True)
-        if i % 100 == 0 and i > 1:
-            x = sne.get_embedding(sess)
-            x = TSNE(n_components=2).fit_transform(x)
-            pos = dict()
-            for node in G.nodes:
-                pos[node] = x[node]
-            plt.figure()
-            nx.draw_networkx(G, pos=pos, node_size=node_size, node_color=node_color, width=0.5, edge_color=edge_color)
-            plt.savefig("figure/figure_epoch"+str(i)+".png")
+        w = sne.calc_wpos_wneg_norm(sess)
+        print("epoch", i, ", loss=", loss, ", distance between w_pos and w_neg=", w)
+        x = sne.get_embedding(sess)
+        pca = PCA(n_components=2)
+        pca.fit(x)
+        x = pca.transform(x)
+        pos = dict()
+        for node in G.nodes:
+            pos[node] = x[node]
+        plt.figure()
+        nx.draw_networkx(G, pos=pos, node_size=node_size, node_color=node_color, width=0.5, edge_color=edge_color)
+        plt.savefig("figure/figure_epoch"+str(i)+".png")
