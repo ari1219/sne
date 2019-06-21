@@ -59,9 +59,10 @@ class Model:
                 self.num_of_negative_sampling,
                 self.num_of_nodes
             )
+        print(self.loss_skip.shape)
 
     def build_loss_rel(self):
-        self.loss_rel = self.reshaped_r*tf.sigmoid(tf.reduce_sum(self.s_vec*self.t_vec, axis=1))
+        self.loss_rel = - tf.log(tf.sigmoid(tf.reduce_sum(self.reshaped_r*self.s_vec*self.t_vec, axis=1))+1e-10)
 
     def build_loss_reg(self):
         self.loss_reg = tf.nn.l2_loss(self.emb_s) + tf.nn.l2_loss(self.emb_t) + tf.nn.l2_loss(self.w_neg) + tf.nn.l2_loss(self.w_pos)
@@ -92,8 +93,11 @@ class Model:
             r = [edge[2] for edge in self.edges[i:i+self.batch_size]]
             yield s, t, r
 
-    def get_embedding(self, sess):
+    def get_s_embedding(self, sess):
         return sess.run(self.emb_s)
+
+    def get_t_embedding(self, sess):
+        return sess.run(self.emb_t)
 
 if __name__ == "__main__":
     x = Model(100, [1, 1, 1])

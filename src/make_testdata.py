@@ -8,13 +8,14 @@ import pandas as pd
 import tensorflow as tf
 from sklearn.decomposition import PCA
 from relational_skipgram import Model
+import numpy as np
 
 G = nx.Graph()
 
 n = 32
-k = 4
+k = 2
 pos_edge = 72
-neg_edge = 48
+neg_edge = 144
 for i in range(k):
     G.add_nodes_from(list(range(n*i, n*(i+1))))
     for _ in range(pos_edge):
@@ -31,7 +32,7 @@ for i in range(k-1):
                 if not G.has_edge(edge[0], edge[1]):
                     G.add_edge(edge[0], edge[1], sign=-1, weight=0.1)
                     break
-node_color = ["c"]*n + ["r"]*n + ["b"]*n + ["y"]*n
+node_color = ["c"]*n + ["r"]*n# + ["b"]*n + ["y"]*n
 edge_color = ["r" if G.edges[edge[0], edge[1]]["sign"]==1 else "b" for edge in G.edges]
 node_size = 100
 
@@ -57,16 +58,18 @@ n = G.number_of_nodes()
 if not directed:
     edges += [[edge[1], edge[0], edge[2]] for edge in edges]
 
-sne = Model(n, edges, d=20, directed=directed, alpha=0)
+sne = Model(n, edges, d=10, directed=directed, alpha=0)
 with tf.Session() as sess:
     sne.variables_initialize(sess)
-    for i in range(501):
+    for i in range(40001):
         loss = sne.train_one_epoch(sess, ret_loss=True)
         if i % 20 == 0:
             w = sne.calc_wpos_wneg_norm(sess)
             print("epoch", i, ", loss=", loss, ", distance between w_pos and w_neg=", w)
-        if i % 100 == 0:
-            x = sne.get_embedding(sess)
+        if i % 1000 == 0:
+            x = sne.get_s_embedding(sess)
+            y = sne.get_t_embedding(sess)
+            x = np.concatenate([x, y], axis=1)
             pca = PCA(n_components=2)
             pca.fit(x)
             x = pca.transform(x)
