@@ -57,20 +57,22 @@ n = G.number_of_nodes()
 if not directed:
     edges += [[edge[1], edge[0], edge[2]] for edge in edges]
 
-sne = Model(n, edges, d=20, directed=directed)
+sne = Model(n, edges, d=20, directed=directed, alpha=0)
 with tf.Session() as sess:
     sne.variables_initialize(sess)
-    for i in range(30):
+    for i in range(501):
         loss = sne.train_one_epoch(sess, ret_loss=True)
-        w = sne.calc_wpos_wneg_norm(sess)
-        print("epoch", i, ", loss=", loss, ", distance between w_pos and w_neg=", w)
-        x = sne.get_embedding(sess)
-        pca = PCA(n_components=2)
-        pca.fit(x)
-        x = pca.transform(x)
-        pos = dict()
-        for node in G.nodes:
-            pos[node] = x[node]
-        plt.figure()
-        nx.draw_networkx(G, pos=pos, node_size=node_size, node_color=node_color, width=0.5, edge_color=edge_color)
-        plt.savefig("figure/figure_epoch"+str(i)+".png")
+        if i % 20 == 0:
+            w = sne.calc_wpos_wneg_norm(sess)
+            print("epoch", i, ", loss=", loss, ", distance between w_pos and w_neg=", w)
+        if i % 100 == 0:
+            x = sne.get_embedding(sess)
+            pca = PCA(n_components=2)
+            pca.fit(x)
+            x = pca.transform(x)
+            pos = dict()
+            for node in G.nodes:
+                pos[node] = x[node]
+            plt.figure()
+            nx.draw_networkx(G, pos=pos, node_size=node_size, node_color=node_color, width=0.5, edge_color=edge_color)
+            plt.savefig("figure/figure_epoch"+str(i)+".png")

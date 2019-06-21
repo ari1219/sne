@@ -6,7 +6,7 @@ import random
 
 class Model:
 
-    def __init__(self, n, edges, directed=True, alpha=1, k=5, d=60, lam=0.001, lr=0.1, batch_size=1000):
+    def __init__(self, n, edges, directed=True, alpha=1, k=5, d=60, lam=0.00001, lr=0.1, batch_size=1000):
         self.num_of_nodes = n
         self.edges = edges
         self.directed = directed
